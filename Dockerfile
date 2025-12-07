@@ -61,6 +61,13 @@ RUN if [ "$ENABLE_PYTORCH_UPGRADE" = "true" ]; then \
       uv pip install --force-reinstall torch torchvision torchaudio --index-url ${PYTORCH_INDEX_URL}; \
     fi
 
+# Install ComfyUI-GGUF custom node
+RUN mkdir -p /comfyui/custom_nodes && \
+    git clone https://github.com/city96/ComfyUI-GGUF.git /comfyui/custom_nodes/ComfyUI-GGUF && \
+    if [ -f /comfyui/custom_nodes/ComfyUI-GGUF/requirements.txt ]; then \
+      uv pip install -r /comfyui/custom_nodes/ComfyUI-GGUF/requirements.txt; \
+    fi
+
 # Change working directory to ComfyUI
 WORKDIR /comfyui
 
@@ -96,7 +103,7 @@ FROM base AS downloader
 
 ARG HUGGINGFACE_ACCESS_TOKEN
 # Set default model type if none is provided
-ARG MODEL_TYPE=flux1-dev-fp8
+ARG MODEL_TYPE="flux2-dev-gguf"
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
@@ -131,6 +138,12 @@ RUN if [ "$MODEL_TYPE" = "flux1-dev" ]; then \
 
 RUN if [ "$MODEL_TYPE" = "flux1-dev-fp8" ]; then \
       wget -q -O models/checkpoints/flux1-dev-fp8.safetensors https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/flux1-dev-fp8.safetensors; \
+    fi
+
+RUN if [ "$MODEL_TYPE" = "flux2-dev-gguf" ]; then \
+      wget -q -O models/unet/flux2-dev-Q8_0.gguf https://huggingface.co/city96/FLUX.2-dev-gguf/resolve/main/flux2-dev-Q8_0.gguf && \
+      wget -q -O models/clip/mistral_3_small_flux2_fp8.safetensors https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_fp8.safetensors && \
+      wget -q -O models/vae/flux2-vae.safetensors https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors; \
     fi
 
 # Stage 3: Final image
